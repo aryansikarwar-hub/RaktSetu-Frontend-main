@@ -68,9 +68,9 @@ export default function HeroSection() {
                 Become a Donor
                 <ArrowRight size={16} />
               </Link>
-              <Link href="/find-blood" className="inline-flex items-center justify-center gap-2 bg-white/10 text-white font-semibold px-6 py-3 rounded-xl border border-white/40 hover:bg-white hover:text-primary active:scale-[0.97] transition-all duration-150 backdrop-blur-sm">
+              <Link href="/emergency-page" className="inline-flex items-center justify-center gap-2 bg-white/10 text-white font-semibold px-6 py-3 rounded-xl border border-white/40 hover:bg-white hover:text-primary active:scale-[0.97] transition-all duration-150 backdrop-blur-sm">
                 <Droplets size={18} />
-                Find Blood Now
+                View Emergencies
               </Link>
             </div>
 
