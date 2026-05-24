@@ -85,7 +85,7 @@ export function matchDonors(request: any, donors: any[] = []) {
       if (reliability >= 90) reasons.push('Highly reliable');
       if (d.available === false) { score -= 25; reasons.push('Unavailable'); }
       return {
-        donorId: d._id, name: d.name, bloodType: d.bloodType, city: d.city, distanceKm,
+        donorId: d._id, name: d.name, phone: d.phone || null, bloodType: d.bloodType, city: d.city, distanceKm,
         eligible: elig.eligible, eligibleInDays: elig.daysRemaining, reliability,
         score: Math.round(Math.min(100, Math.max(0, score))), reasons,
       };

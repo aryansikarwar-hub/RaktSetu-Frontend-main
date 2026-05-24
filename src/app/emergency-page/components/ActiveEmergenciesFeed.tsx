@@ -5,6 +5,7 @@ import {
   Brain, Loader2, CheckCircle2, XCircle, RefreshCw, Filter,
 } from 'lucide-react';
 import BloodTypeBadge from '@/components/ui/BloodTypeBadge';
+import CallModal from '@/components/CallModal';
 import { emergencyApi } from '@/lib/api';
 
 const urgencyMeta: Record<string, { ring: string; label: string; dot: string }> = {
@@ -83,6 +84,8 @@ function EmergencyItem({ emergency: e }: { emergency: any }) {
   const [expanded, setExpanded] = useState(false);
   const [matches, setMatches] = useState<any>(null);
   const [matching, setMatching] = useState(false);
+  const [callOpen, setCallOpen] = useState(false);
+  const [callDonor, setCallDonor] = useState<{ name: string; phone: string } | null>(null);
   const meta = urgencyMeta[e.urgency] || urgencyMeta.moderate;
 
   const runMatch = async () => {
@@ -136,13 +139,21 @@ function EmergencyItem({ emergency: e }: { emergency: any }) {
           )}
 
           <div className="flex flex-wrap gap-2">
-            <a href={`tel:${e.contactPhone}`} className="btn-primary text-sm py-2 px-4">
+            <button onClick={() => { setCallDonor(null); setCallOpen(true); }} className="btn-primary text-sm py-2 px-4">
               <Phone size={14} /> Call {e.contactName}
-            </a>
+            </button>
             <button onClick={runMatch} disabled={matching} className="btn-secondary text-sm py-2 px-4">
               {matching ? <><Loader2 size={14} className="animate-spin" /> Matching…</> : <><Brain size={14} /> AI Match Donors</>}
             </button>
           </div>
+
+          <CallModal
+            open={callOpen}
+            onClose={() => { setCallOpen(false); setCallDonor(null); }}
+            name={callDonor ? callDonor.name : e.contactName}
+            phone={callDonor ? callDonor.phone : e.contactPhone}
+            subtitle={callDonor ? 'Matched donor' : `${e.hospital} · ${e.city}`}
+          />
 
           {matches && (
             <div className="mt-2 rounded-xl border border-border overflow-hidden">
@@ -160,6 +171,15 @@ function EmergencyItem({ emergency: e }: { emergency: any }) {
                     </div>
                     <BloodTypeBadge type={m.bloodType} size="sm" />
                     {m.eligible ? <CheckCircle2 size={14} className="text-green-500" /> : <XCircle size={14} className="text-amber-500" />}
+                    {m.phone && (
+                      <button
+                        onClick={() => { setCallDonor({ name: m.name, phone: m.phone }); setCallOpen(true); }}
+                        className="p-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors flex-shrink-0"
+                        aria-label={`Call ${m.name}`}
+                      >
+                        <Phone size={14} />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
