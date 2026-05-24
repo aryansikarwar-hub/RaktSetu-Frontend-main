@@ -4,24 +4,33 @@ import EmergencyHeader from './EmergencyHeader';
 import EmergencyRequestForm from './EmergencyRequestForm';
 import ActiveEmergenciesFeed from './ActiveEmergenciesFeed';
 import EmergencyStats from './EmergencyStats';
+import { useAuth } from '@/context/AuthContext';
 
 export default function EmergencyPageContent() {
+  const { user } = useAuth();
   const [formOpen, setFormOpen] = useState(false);
+
+  // Only hospitals & admins can POST emergencies. Donors (and logged-out
+  // visitors) can only VIEW the live feed so they can respond.
+  const canPost = user?.role === 'hospital' || user?.role === 'admin';
 
   return (
     <div className="space-y-6">
-      <EmergencyHeader onOpenForm={() => setFormOpen(true)} />
+      <EmergencyHeader canPost={canPost} onOpenForm={() => setFormOpen(true)} />
       <EmergencyStats />
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
-        {/* Feed — wider */}
-        <div className="xl:col-span-3">
-          <ActiveEmergenciesFeed />
+
+      {canPost ? (
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+          <div className="xl:col-span-3">
+            <ActiveEmergenciesFeed />
+          </div>
+          <div className="xl:col-span-2">
+            <EmergencyRequestForm isOpen={formOpen} onClose={() => setFormOpen(false)} />
+          </div>
         </div>
-        {/* Form — narrower */}
-        <div className="xl:col-span-2">
-          <EmergencyRequestForm isOpen={formOpen} onClose={() => setFormOpen(false)} />
-        </div>
-      </div>
+      ) : (
+        <ActiveEmergenciesFeed />
+      )}
     </div>
   );
 }
