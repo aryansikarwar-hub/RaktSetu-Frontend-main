@@ -15,17 +15,35 @@ interface NavItem { label: string; href: string; icon: React.ReactNode; }
 
 const publicNav: NavItem[] = [
   { label: 'Home', href: '/', icon: <Home size={16} /> },
-  { label: 'Find Blood', href: '/find-blood', icon: <Search size={16} /> },
   { label: 'Eligibility', href: '/eligibility', icon: <Stethoscope size={16} /> },
-  { label: 'Emergency', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
+  { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
 ];
 
-const authNav: NavItem[] = [
+const donorNav: NavItem[] = [
+  { label: 'Dashboard', href: '/user-dashboard', icon: <LayoutDashboard size={16} /> },
+  { label: 'Eligibility', href: '/eligibility', icon: <Stethoscope size={16} /> },
+  { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
+];
+
+const hospitalNav: NavItem[] = [
   { label: 'Dashboard', href: '/user-dashboard', icon: <LayoutDashboard size={16} /> },
   { label: 'Find Blood', href: '/find-blood', icon: <Search size={16} /> },
   { label: 'Forecast', href: '/forecast', icon: <Activity size={16} /> },
-  { label: 'Emergency', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
+  { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
 ];
+
+const adminNav: NavItem[] = [
+  { label: 'Dashboard', href: '/user-dashboard', icon: <LayoutDashboard size={16} /> },
+  { label: 'Find Blood', href: '/find-blood', icon: <Search size={16} /> },
+  { label: 'Forecast', href: '/forecast', icon: <Activity size={16} /> },
+  { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
+];
+
+function navForRole(role?: string): NavItem[] {
+  if (role === 'hospital') return hospitalNav;
+  if (role === 'admin') return adminNav;
+  return donorNav;
+}
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -45,7 +63,7 @@ export default function Navbar() {
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  const navItems = user ? authNav : publicNav;
+  const navItems = user ? navForRole(user.role) : publicNav;
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
   const openAuth = (mode: 'login' | 'register') => { setAuthMode(mode); setAuthOpen(true); };
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import SiteShell from '@/components/SiteShell';
+import RoleGuard from '@/components/RoleGuard';
 import ForecastDashboard from './components/ForecastDashboard';
 
 export const metadata: Metadata = {
@@ -11,7 +12,9 @@ export const metadata: Metadata = {
 export default function ForecastPage() {
   return (
     <SiteShell>
-      <ForecastDashboard />
+      <RoleGuard allow={['hospital', 'admin']} featureName="Demand Forecast">
+        <ForecastDashboard />
+      </RoleGuard>
     </SiteShell>
   );
 }
