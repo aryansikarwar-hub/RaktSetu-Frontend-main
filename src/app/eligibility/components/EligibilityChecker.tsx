@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import {
   Stethoscope, CheckCircle2, AlertTriangle, XCircle, Loader2, RotateCcw,
-  Info, ChevronRight, ShieldCheck,
+  Info, ChevronRight, ShieldCheck, MessageCircle, ClipboardList,
 } from 'lucide-react';
 import { aiApi } from '@/lib/api';
+import EligibilityChat from './EligibilityChat';
 
 interface Answers {
   age: string; weightKg: string; recentDonationDays: string;
@@ -32,6 +33,7 @@ export default function EligibilityChecker() {
   const [answers, setAnswers] = useState<Answers>(initial);
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [mode, setMode] = useState<'form' | 'chat'>('chat');
 
   const update = (k: keyof Answers, v: string | boolean) => setAnswers((a) => ({ ...a, [k]: v }));
 
@@ -69,6 +71,27 @@ export default function EligibilityChecker() {
         </p>
       </div>
 
+      {/* Mode toggle: conversational chat or structured form */}
+      <div className="flex justify-center mb-6">
+        <div className="inline-flex bg-muted rounded-xl p-1">
+          <button
+            onClick={() => setMode('chat')}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${mode === 'chat' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <MessageCircle size={15} /> Chat with AI
+          </button>
+          <button
+            onClick={() => setMode('form')}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${mode === 'form' ? 'bg-card text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          >
+            <ClipboardList size={15} /> Use Form
+          </button>
+        </div>
+      </div>
+
+      {mode === 'chat' ? (
+        <EligibilityChat />
+      ) : (
       <div className="card p-6 lg:p-8 space-y-6">
         <div className="grid sm:grid-cols-3 gap-4">
           <div>
@@ -114,8 +137,9 @@ export default function EligibilityChecker() {
           {result && <button onClick={reset} className="btn-secondary"><RotateCcw size={16} /> Reset</button>}
         </div>
       </div>
+      )}
 
-      {result && (
+      {mode === 'form' && result && (
         <div id="elig-result" className="mt-6 fade-in-up">
           <div className={`rounded-2xl border p-6 ${verdictMeta[result.verdict].bg}`}>
             <div className="flex items-start gap-4">
