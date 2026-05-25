@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import {
   Menu, X, Home, AlertTriangle, LayoutDashboard, LogOut, LogIn, UserPlus,
-  ChevronDown, Bell, Sun, Moon, Activity, Stethoscope, Search,
+  ChevronDown, Bell, Sun, Moon, Activity, Stethoscope, Search, Award,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -19,12 +19,16 @@ const publicNav: NavItem[] = [
   { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
 ];
 
+// Navigation shown to a logged-in DONOR.
+// Donors can view emergencies (to respond) and check their own eligibility —
+// but they do NOT get "Find Blood" (hospital-only) or "Forecast" (hospital/admin).
 const donorNav: NavItem[] = [
   { label: 'Dashboard', href: '/user-dashboard', icon: <LayoutDashboard size={16} /> },
   { label: 'Eligibility', href: '/eligibility', icon: <Stethoscope size={16} /> },
   { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
 ];
 
+// Navigation shown to a logged-in HOSPITAL.
 const hospitalNav: NavItem[] = [
   { label: 'Dashboard', href: '/user-dashboard', icon: <LayoutDashboard size={16} /> },
   { label: 'Find Blood', href: '/find-blood', icon: <Search size={16} /> },
@@ -32,6 +36,7 @@ const hospitalNav: NavItem[] = [
   { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
 ];
 
+// Navigation shown to a logged-in ADMIN — oversees the whole network.
 const adminNav: NavItem[] = [
   { label: 'Dashboard', href: '/user-dashboard', icon: <LayoutDashboard size={16} /> },
   { label: 'Find Blood', href: '/find-blood', icon: <Search size={16} /> },
@@ -49,6 +54,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const pathname = usePathname();
@@ -136,14 +142,45 @@ export default function Navbar() {
                     )}
                   </div>
 
-                  <Link href="/user-dashboard" className="flex items-center gap-2 pl-2 border-l border-border">
-                    <div className="w-8 h-8 rounded-full gradient-card-red flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{user.name.charAt(0)}</div>
-                    <div className="hidden lg:block">
-                      <p className="text-sm font-semibold text-foreground leading-tight">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.bloodType} · {user.city}</p>
-                    </div>
-                    <ChevronDown size={14} className="text-muted-foreground" />
-                  </Link>
+                  <div className="relative pl-2 border-l border-border">
+                    <button onClick={() => setProfileOpen(!profileOpen)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                      <div className="w-8 h-8 rounded-full gradient-card-red flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{user.name.charAt(0)}</div>
+                      <div className="hidden lg:block text-left">
+                        <p className="text-sm font-semibold text-foreground leading-tight">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">{user.bloodType} · {user.city}</p>
+                      </div>
+                      <ChevronDown size={14} className={`text-muted-foreground transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {profileOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                        <div className="absolute right-0 top-full mt-2 w-56 bg-card rounded-2xl border border-border shadow-card-lg z-50 overflow-hidden">
+                          <div className="px-4 py-3 border-b border-border">
+                            <p className="text-sm font-semibold text-foreground">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">{user.email || `${user.bloodType} · ${user.city}`}</p>
+                          </div>
+                          <div className="py-1">
+                            <Link href="/user-dashboard" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors">
+                              <LayoutDashboard size={16} /> My Dashboard
+                            </Link>
+                            {user.role === 'donor' && (
+                              <Link href="/badges" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors">
+                                <Award size={16} /> Badges & Certificate
+                              </Link>
+                            )}
+                            <Link href="/eligibility" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors">
+                              <Stethoscope size={16} /> Check Eligibility
+                            </Link>
+                          </div>
+                          <div className="py-1 border-t border-border">
+                            <button onClick={() => { logout(); setProfileOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-primary hover:bg-primary/5 transition-colors">
+                              <LogOut size={16} /> Logout
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                   <button onClick={logout} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all">
                     <LogOut size={15} />
                     <span className="hidden lg:inline">Logout</span>
