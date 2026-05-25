@@ -216,6 +216,39 @@ export const aiApi = {
     if (USE_MOCK) return Promise.resolve({ mode: 'rules (client)', features: ['match', 'eligibility', 'forecast', 'triage'] });
     return request('/ai/status');
   },
+
+  async describeEmergency(details: Record<string, unknown>) {
+    if (USE_MOCK) {
+      await delay(600);
+      const d: any = details;
+      return { description: `${d.units || ''} unit(s) of ${d.bloodType || 'blood'} needed at ${d.hospital || 'hospital'}${d.reason ? ` — ${d.reason}` : ''}. Urgency: ${d.urgency || 'urgent'}.` };
+    }
+    return request('/ai/describe-emergency', { method: 'POST', body: JSON.stringify(details) });
+  },
+
+  async outreach(donor: Record<string, unknown>, req2: Record<string, unknown>) {
+    if (USE_MOCK) {
+      await delay(600);
+      const name = (donor as any).name?.split(' ')[0] || 'there';
+      return { message: `Hi ${name}, ${(req2 as any).bloodType || 'blood'} is urgently needed at ${(req2 as any).hospital || 'a nearby hospital'}. You're a match — please respond if you can help. Thank you! 🩸` };
+    }
+    return request('/ai/outreach', { method: 'POST', body: JSON.stringify({ donor, request: req2 }) });
+  },
+
+  async eligibilityChat(message: string, history: { role: string; text: string }[] = []) {
+    if (USE_MOCK) {
+      await delay(700);
+      const m = message.toLowerCase();
+      const hints: string[] = [];
+      if (/(fever|cold|flu|ill|sick)/.test(m)) hints.push('Recent illness usually means waiting until fully recovered (~2 weeks).');
+      if (/(tattoo|piercing)/.test(m)) hints.push('A recent tattoo/piercing typically defers donation up to 6 months.');
+      if (/(pregnan|delivery)/.test(m)) hints.push('Pregnancy/recent delivery defers donation until a doctor clears you.');
+      if (/(alcohol|drink)/.test(m)) hints.push('Avoid donating within 24 hours of alcohol.');
+      const base = hints.length ? hints.join(' ') : 'Tell me your age, weight, last donation date, and any recent illness, tattoo, surgery, pregnancy, or medication.';
+      return { answer: `${base} (Informational only — not medical advice.)` };
+    }
+    return request('/ai/eligibility-chat', { method: 'POST', body: JSON.stringify({ message, history }) });
+  },
 };
 
 /* ─────────────────────────────── STATS ─────────────────────────────── */
