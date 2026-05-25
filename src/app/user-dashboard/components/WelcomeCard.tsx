@@ -1,4 +1,6 @@
+'use client';
 import React from 'react';
+import Link from 'next/link';
 import { CheckCircle2, Clock, Award, MapPin } from 'lucide-react';
 import BloodTypeBadge from '@/components/ui/BloodTypeBadge';
 import { AuthUser } from '@/context/AuthContext';
@@ -76,11 +78,12 @@ export default function WelcomeCard({ user }: WelcomeCardProps) {
               </>
             )}
           </div>
-          <div className="bg-white/15 rounded-2xl px-5 py-4 text-center backdrop-blur-sm border border-white/20 min-w-24">
-            <Award size={20} className="mx-auto mb-1 text-yellow-300" />
+          <Link href="/badges" className="bg-white/15 rounded-2xl px-5 py-4 text-center backdrop-blur-sm border border-white/20 min-w-24 hover:bg-white/25 transition-colors cursor-pointer group">
+            <Award size={20} className="mx-auto mb-1 text-yellow-300 group-hover:scale-110 transition-transform" />
             <p className="text-sm font-extrabold">Gold</p>
             <p className="text-xs text-white/70 font-medium">Donor Tier</p>
-          </div>
+            <p className="text-[10px] text-white/60 mt-1 underline">View badges →</p>
+          </Link>
         </div>
       </div>
     </div>
