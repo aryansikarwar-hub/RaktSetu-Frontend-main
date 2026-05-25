@@ -35,6 +35,7 @@ interface EmergencyRequestFormProps {
 export default function EmergencyRequestForm({ isOpen: _isOpen, onClose: _onClose }: EmergencyRequestFormProps) {
   const [submitState, setSubmitState] = useState<'idle' | 'loading' | 'success'>('idle');
   const [aiWriting, setAiWriting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
   const [selectedBloodType, setSelectedBloodType] = useState('');
   const [triage, setTriage] = useState<any>(null);
   const [refId, setRefId] = useState('');
@@ -58,6 +59,7 @@ export default function EmergencyRequestForm({ isOpen: _isOpen, onClose: _onClos
   // request plus the AI triage (priority score + label + reasons).
   const onSubmit = async (data: EmergencyFormData) => {
     setSubmitState('loading');
+    setSubmitError('');
     try {
       const payload = {
         bloodType: data.bloodType, units: Number(data.units), urgency: data.urgency,
@@ -70,7 +72,9 @@ export default function EmergencyRequestForm({ isOpen: _isOpen, onClose: _onClos
       setTriage(res.triage || null);
       setRefId((res.emergency?._id || `EMRG-${Date.now()}`).toString().slice(-6).toUpperCase());
       setSubmitState('success');
-    } catch {
+    } catch (err: any) {
+      // Show the real reason instead of failing silently.
+      setSubmitError(err?.message || 'Could not post the request. Please check all fields and try again.');
       setSubmitState('idle');
     }
   };
@@ -364,6 +368,18 @@ export default function EmergencyRequestForm({ isOpen: _isOpen, onClose: _onClos
           </label>
         </div>
         {errors.agreeTerms && <p className="text-xs text-primary -mt-2">{errors.agreeTerms.message}</p>}
+
+        {/* Show why submit failed, if it did */}
+        {submitError && (
+          <div className="rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 p-3 text-sm text-red-700 dark:text-red-400">
+            {submitError}
+          </div>
+        )}
+        {Object.keys(errors).length > 0 && (
+          <div className="rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 p-3 text-xs text-amber-700 dark:text-amber-400">
+            Please fill all required fields correctly before broadcasting.
+          </div>
+        )}
 
         {/* Submit */}
         <button
