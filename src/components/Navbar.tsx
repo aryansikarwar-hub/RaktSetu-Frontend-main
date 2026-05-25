@@ -124,11 +124,16 @@ export default function Navbar() {
                           <span className="text-xs text-muted-foreground">3 unread</span>
                         </div>
                         {[
-                          { id: 'n1', text: 'Emergency: O- blood needed at AIIMS Delhi', time: '2 min ago', urgent: true },
-                          { id: 'n2', text: 'Your donation eligibility restores in 3 days', time: '1 hr ago', urgent: false },
-                          { id: 'n3', text: 'Kokilaben Hospital updated blood stock', time: '3 hr ago', urgent: false },
+                          { id: 'n1', text: 'Emergency: O- blood needed at AIIMS Delhi', time: '2 min ago', urgent: true, href: '/emergency-page' },
+                          { id: 'n2', text: 'Your donation eligibility restores in 3 days', time: '1 hr ago', urgent: false, href: '/eligibility' },
+                          { id: 'n3', text: 'Kokilaben Hospital updated blood stock', time: '3 hr ago', urgent: false, href: '/user-dashboard' },
                         ].map((n) => (
-                          <div key={n.id} className="px-4 py-3 border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer">
+                          <Link
+                            key={n.id}
+                            href={n.href}
+                            onClick={() => setNotifOpen(false)}
+                            className="block px-4 py-3 border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
+                          >
                             <div className="flex items-start gap-2">
                               <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.urgent ? 'bg-primary' : 'bg-border'}`} />
                               <div>
@@ -136,8 +141,11 @@ export default function Navbar() {
                                 <p className="text-xs text-muted-foreground mt-0.5">{n.time}</p>
                               </div>
                             </div>
-                          </div>
+                          </Link>
                         ))}
+                        <Link href="/emergency-page" onClick={() => setNotifOpen(false)} className="block px-4 py-2.5 text-center text-xs font-semibold text-primary hover:bg-primary/5 transition-colors">
+                          View all emergencies →
+                        </Link>
                       </div>
                     )}
                   </div>
