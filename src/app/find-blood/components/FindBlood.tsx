@@ -60,9 +60,11 @@ function DonorSearch() {
   const [onlyAvailable, setOnlyAvailable] = useState(true);
   const [donors, setDonors] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(12);
 
   const search = useCallback(async () => {
     setLoading(true);
+    setVisibleCount(12);
     const params: any = {};
     if (bloodType) params.bloodType = bloodType;
     if (city !== 'All') params.city = city;
@@ -113,8 +115,15 @@ function DonorSearch() {
         <>
           <p className="text-sm text-muted-foreground mb-4">{donors.length} donor{donors.length !== 1 ? 's' : ''} found</p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {donors.map((d) => <DonorCard key={d._id} donor={d} />)}
+            {donors.slice(0, visibleCount).map((d) => <DonorCard key={d._id} donor={d} />)}
           </div>
+          {visibleCount < donors.length && (
+            <div className="flex justify-center mt-6">
+              <button onClick={() => setVisibleCount((c) => c + 12)} className="btn-secondary px-6 py-2.5">
+                Show more ({donors.length - visibleCount} left)
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

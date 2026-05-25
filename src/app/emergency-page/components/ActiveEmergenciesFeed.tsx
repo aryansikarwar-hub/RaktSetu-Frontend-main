@@ -27,6 +27,7 @@ export default function ActiveEmergenciesFeed() {
   const [emergencies, setEmergencies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [cityFilter, setCityFilter] = useState('All');
+  const [visibleCount, setVisibleCount] = useState(8);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,8 +73,15 @@ export default function ActiveEmergenciesFeed() {
           <p>No active emergencies right now.</p>
         </div>
       ) : (
-        <div className="divide-y divide-border max-h-[640px] overflow-y-auto no-scrollbar">
-          {filtered.map((e) => <EmergencyItem key={e._id} emergency={e} />)}
+        <div className="divide-y divide-border">
+          {filtered.slice(0, visibleCount).map((e) => <EmergencyItem key={e._id} emergency={e} />)}
+          {visibleCount < filtered.length && (
+            <div className="flex justify-center py-4">
+              <button onClick={() => setVisibleCount((c) => c + 8)} className="btn-secondary px-6 py-2.5 text-sm">
+                Show more ({filtered.length - visibleCount} left)
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
