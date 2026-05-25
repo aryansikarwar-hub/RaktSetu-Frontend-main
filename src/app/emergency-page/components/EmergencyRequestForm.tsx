@@ -2,8 +2,8 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import CitySelect from '@/components/ui/CitySelect';
-import { AlertTriangle, Loader2, CheckCircle2, X } from 'lucide-react';
-import { emergencyApi } from '@/lib/api';
+import { AlertTriangle, Loader2, CheckCircle2, X, Sparkles } from 'lucide-react';
+import { emergencyApi, aiApi } from '@/lib/api';
 
 interface EmergencyFormData {
   bloodType: string;
@@ -34,6 +34,7 @@ interface EmergencyRequestFormProps {
 
 export default function EmergencyRequestForm({ isOpen: _isOpen, onClose: _onClose }: EmergencyRequestFormProps) {
   const [submitState, setSubmitState] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [aiWriting, setAiWriting] = useState(false);
   const [selectedBloodType, setSelectedBloodType] = useState('');
   const [triage, setTriage] = useState<any>(null);
   const [refId, setRefId] = useState('');
@@ -313,10 +314,30 @@ export default function EmergencyRequestForm({ isOpen: _isOpen, onClose: _onClos
 
         {/* Reason */}
         <div>
-          <label htmlFor="reason" className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1.5">
-            Medical Reason <span className="text-primary">*</span>
-          </label>
-          <p className="text-xs text-muted-foreground mb-1.5">Briefly describe the medical condition or surgery requiring blood</p>
+          <div className="flex items-center justify-between mb-1.5">
+            <label htmlFor="reason" className="block text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Medical Reason <span className="text-primary">*</span>
+            </label>
+            <button
+              type="button"
+              onClick={async () => {
+                setAiWriting(true);
+                try {
+                  const res = await aiApi.describeEmergency({
+                    bloodType: watch('bloodType'), units: watch('units'), hospital: watch('hospital'),
+                    city: watch('city'), ward: watch('ward'), urgency: watch('urgency'),
+                    patientAge: watch('patientAge'), reason: watch('reason'),
+                  });
+                  if (res?.description) setValue('reason', res.description, { shouldValidate: true });
+                } finally { setAiWriting(false); }
+              }}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:text-accent/80 transition-colors disabled:opacity-50"
+              disabled={aiWriting}
+            >
+              {aiWriting ? <><Loader2 size={12} className="animate-spin" /> Writing…</> : <><Sparkles size={12} /> AI Write</>}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground mb-1.5">Briefly describe the medical condition or surgery requiring blood — or let AI write it.</p>
           <textarea
             id="reason"
             rows={3}
