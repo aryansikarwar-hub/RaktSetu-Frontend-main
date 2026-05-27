@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Building2, User, Droplet, MapPin, Clock, AlertTriangle, ShieldCheck,
-  Loader2, CheckCircle2, ArrowLeft, FileText, Phone, Heart, Hospital,
+  Loader2, CheckCircle2, ArrowLeft, FileText, Phone, Heart, Hospital, Download,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { emergencyApi } from '@/lib/api';
+import { downloadAgreementPDF } from './generateAgreementPDF';
 
 function refCode(id: string) {
   // Short human-friendly reference for the signed commitment.
@@ -48,6 +49,41 @@ export default function AgreementContent() {
   const reference = useMemo(() => refCode(id), [id]);
   const today = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
   const canConfirm = agreed && signature.trim().length >= 3 && !submitting;
+
+  const handleDownloadPDF = () => {
+    if (!emergency) return;
+    // Build absolute logo URL so the iframe can load it
+    const logoUrl =
+      typeof window !== 'undefined'
+        ? `${window.location.origin}/assets/images/app_logo.png`
+        : '/assets/images/app_logo.png';
+
+    downloadAgreementPDF({
+      reference,
+      today,
+      emergency: {
+        hospital: emergency.hospital,
+        city: emergency.city,
+        ward: emergency.ward,
+        contactName: emergency.contactName,
+        contactPhone: emergency.contactPhone,
+        bloodType: emergency.bloodType,
+        units: emergency.units,
+        urgency: emergency.urgency,
+        reason: emergency.reason,
+        respondersCount: emergency.respondersCount,
+      },
+      donor: {
+        name: user?.name || 'Donor',
+        bloodType: user?.bloodType,
+        city: user?.city,
+        phone: user?.phone,
+        email: (user as any)?.email,
+      },
+      signature: signature.trim() || (user?.name || 'Donor'),
+      logoUrl,
+    });
+  };
 
   const handleConfirm = async () => {
     if (!canConfirm) return;
@@ -108,6 +144,9 @@ export default function AgreementContent() {
             <a href={`tel:${emergency.contactPhone}`} className="btn-primary text-sm">
               <Phone size={15} /> Call {emergency.contactName}
             </a>
+            <button onClick={handleDownloadPDF} className="btn-secondary text-sm">
+              <Download size={15} /> Download Agreement PDF
+            </button>
             <Link href="/emergency-page" className="btn-secondary text-sm">
               <ArrowLeft size={15} /> Back to Emergencies
             </Link>
@@ -140,6 +179,13 @@ export default function AgreementContent() {
             <p className="text-xs text-muted-foreground">Reference</p>
             <p className="font-bold text-foreground text-sm tracking-wide">{reference}</p>
             <p className="text-xs text-muted-foreground mt-0.5">{today}</p>
+            <button
+              onClick={handleDownloadPDF}
+              className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
+              title="Download a professional PDF copy of this agreement"
+            >
+              <Download size={13} /> Download PDF
+            </button>
           </div>
         </div>
 
