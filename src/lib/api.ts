@@ -231,6 +231,32 @@ export const emergencyApi = {
     }
     return request(`/emergencies/${id}/matches`);
   },
+
+  // Fetch a single emergency by id (used by the agreement page).
+  async get(id: string) {
+    if (USE_MOCK) {
+      await delay(200);
+      const e = MOCK_EMERGENCIES.find((x) => x._id === id);
+      if (!e) throw new Error('Emergency not found');
+      return { emergency: e };
+    }
+    // Backend has no single-get route; fetch the open list and find it.
+    const res = await request(`/emergencies`);
+    const found = (res.emergencies || []).find((x: any) => x._id === id);
+    if (!found) throw new Error('Emergency not found');
+    return { emergency: found };
+  },
+
+  // A donor pledges/commits to respond to an emergency.
+  async respond(id: string) {
+    if (USE_MOCK) {
+      await delay(700);
+      const e = MOCK_EMERGENCIES.find((x) => x._id === id) as any;
+      if (e) { e.respondersCount = (e.respondersCount || 0) + 1; e.status = 'matched'; }
+      return { success: true, emergency: e };
+    }
+    return request(`/emergencies/${id}/respond`, { method: 'POST', body: JSON.stringify({}) });
+  },
 };
 
 /* ─────────────────────────────── AI ─────────────────────────────── */

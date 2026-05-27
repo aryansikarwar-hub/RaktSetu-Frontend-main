@@ -1,12 +1,14 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   AlertTriangle, MapPin, Clock, Phone, ChevronDown, ChevronUp, Droplets,
-  Brain, Loader2, CheckCircle2, XCircle, RefreshCw, Filter,
+  Brain, Loader2, CheckCircle2, XCircle, RefreshCw, Filter, HeartHandshake,
 } from 'lucide-react';
 import BloodTypeBadge from '@/components/ui/BloodTypeBadge';
 import CallModal from '@/components/CallModal';
 import { emergencyApi } from '@/lib/api';
+import { useAuth } from '@/context/AuthContext';
 
 const urgencyMeta: Record<string, { ring: string; label: string; dot: string }> = {
   critical: { ring: 'border-l-red-500', label: 'badge-critical', dot: 'bg-red-500' },
@@ -89,12 +91,23 @@ export default function ActiveEmergenciesFeed() {
 }
 
 function EmergencyItem({ emergency: e }: { emergency: any }) {
+  const router = useRouter();
+  const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const [matches, setMatches] = useState<any>(null);
   const [matching, setMatching] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
   const [callDonor, setCallDonor] = useState<{ name: string; phone: string } | null>(null);
   const meta = urgencyMeta[e.urgency] || urgencyMeta.moderate;
+
+  // Hospitals/admins manage requests; donors & visitors can accept them.
+  const canAccept = !user || user.role === 'donor';
+
+  const acceptRequest = () => {
+    // Route to the commitment/agreement page. RoleGuard there ensures only a
+    // logged-in donor can complete it (visitors get prompted to log in).
+    router.push(`/emergency-page/agreement?id=${encodeURIComponent(e._id)}`);
+  };
 
   const runMatch = async () => {
     setMatching(true);
@@ -124,9 +137,16 @@ function EmergencyItem({ emergency: e }: { emergency: any }) {
             </p>
           </div>
         </div>
-        <button onClick={() => setExpanded(!expanded)} className="p-1 text-muted-foreground hover:text-foreground flex-shrink-0">
-          {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {canAccept && !expanded && (
+            <button onClick={acceptRequest} className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-colors">
+              <HeartHandshake size={13} /> Accept
+            </button>
+          )}
+          <button onClick={() => setExpanded(!expanded)} className="p-1 text-muted-foreground hover:text-foreground">
+            {expanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          </button>
+        </div>
       </div>
 
       {expanded && (
@@ -147,7 +167,12 @@ function EmergencyItem({ emergency: e }: { emergency: any }) {
           )}
 
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => { setCallDonor(null); setCallOpen(true); }} className="btn-primary text-sm py-2 px-4">
+            {canAccept && (
+              <button onClick={acceptRequest} className="btn-primary text-sm py-2 px-4">
+                <HeartHandshake size={14} /> Accept Request
+              </button>
+            )}
+            <button onClick={() => { setCallDonor(null); setCallOpen(true); }} className={`text-sm py-2 px-4 ${canAccept ? 'btn-secondary' : 'btn-primary'}`}>
               <Phone size={14} /> Call {e.contactName}
             </button>
             <button onClick={runMatch} disabled={matching} className="btn-secondary text-sm py-2 px-4">
