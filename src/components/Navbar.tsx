@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import {
   Menu, X, Home, AlertTriangle, LayoutDashboard, LogOut, LogIn, UserPlus,
-  ChevronDown, Bell, Sun, Moon, Activity, Stethoscope, Search, Award, Sparkles,
+  ChevronDown, Bell, Sun, Moon, Activity, Stethoscope, Search, Award, Sparkles, ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -24,12 +24,14 @@ const publicNav: NavItem[] = [
 ];
 
 // Navigation shown to a logged-in DONOR.
-// Donors can find donors, view emergencies (to respond) and check their own eligibility.
+// A donor's job is to DONATE, not to search for other donors — so no "Find Donors".
+// Instead they get "My Donations": their history + a countdown to the next date
+// they're eligible to donate (the two questions every returning donor has).
 const donorNav: NavItem[] = [
   { label: 'Dashboard', href: '/user-dashboard', icon: <LayoutDashboard size={16} /> },
-  { label: 'Find Donors', href: '/find-blood', icon: <Search size={16} /> },
-  { label: 'Eligibility', href: '/eligibility', icon: <Stethoscope size={16} /> },
+  { label: 'My Donations', href: '/my-donations', icon: <ClipboardList size={16} /> },
   { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
+  { label: 'Eligibility', href: '/eligibility', icon: <Stethoscope size={16} /> },
 ];
 
 // Navigation shown to a logged-in HOSPITAL.

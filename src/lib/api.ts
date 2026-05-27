@@ -128,6 +128,50 @@ export const donorApi = {
   },
 };
 
+/* ─────────────────────────────── DONATIONS (history) ─────────────────────────────── */
+export const donationApi = {
+  // Donation history for the logged-in donor.
+  // In mock mode it builds a believable history from the donor's own profile,
+  // so the "My Donations" page works with NO backend. With USE_MOCK=false it
+  // calls GET /api/donors/me/donations (add that route when you're ready).
+  async myHistory(user?: { bloodType?: string; city?: string; totalDonations?: number; lastDonation?: string | null }) {
+    if (USE_MOCK) {
+      await delay(350);
+
+      const bloodType = user?.bloodType || 'O+';
+      const city = user?.city || 'Mumbai';
+      const total = user?.totalDonations ?? 3;
+      const last = user?.lastDonation ? new Date(user.lastDonation) : new Date();
+
+      const HOSPITALS = [
+        'AIIMS', 'Apollo Hospital', 'Fortis Hospital', 'Kokilaben Hospital',
+        'Lilavati Hospital', 'Max Super Speciality', 'Manipal Hospital',
+      ];
+      const TYPES = ['Whole Blood', 'Platelets', 'Plasma'];
+
+      // Generate `total` past donations, ~92 days apart, newest first.
+      const donations = Array.from({ length: Math.max(0, total) }).map((_, i) => {
+        const d = new Date(last);
+        d.setDate(d.getDate() - i * 92);
+        return {
+          id: `mock_don_${i}`,
+          date: d.toISOString(),
+          hospital: `${HOSPITALS[i % HOSPITALS.length]}, ${city}`,
+          city,
+          bloodType,
+          units: 1,
+          donationType: TYPES[i % TYPES.length],
+          pointsAwarded: 50,
+        };
+      });
+
+      return { count: donations.length, donations };
+    }
+
+    return request('/donors/me/donations');
+  },
+};
+
 /* ─────────────────────────────── HOSPITALS ─────────────────────────────── */
 export const hospitalApi = {
   async list(city?: string) {
