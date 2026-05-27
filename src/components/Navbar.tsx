@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import {
   Menu, X, Home, AlertTriangle, LayoutDashboard, LogOut, LogIn, UserPlus,
-  ChevronDown, Bell, Sun, Moon, Activity, Stethoscope, Search, Award,
+  ChevronDown, Bell, Sun, Moon, Activity, Stethoscope, Search, Award, Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
@@ -13,17 +13,21 @@ import AuthModal from '@/components/AuthModal';
 
 interface NavItem { label: string; href: string; icon: React.ReactNode; }
 
+// Public navigation (visitors who are NOT logged in).
+// "Find Donors" is now public so anyone can check compatibility & search donors —
+// the most important action in an emergency.
 const publicNav: NavItem[] = [
   { label: 'Home', href: '/', icon: <Home size={16} /> },
+  { label: 'Find Donors', href: '/find-blood', icon: <Search size={16} /> },
   { label: 'Eligibility', href: '/eligibility', icon: <Stethoscope size={16} /> },
   { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
 ];
 
 // Navigation shown to a logged-in DONOR.
-// Donors can view emergencies (to respond) and check their own eligibility —
-// but they do NOT get "Find Blood" (hospital-only) or "Forecast" (hospital/admin).
+// Donors can find donors, view emergencies (to respond) and check their own eligibility.
 const donorNav: NavItem[] = [
   { label: 'Dashboard', href: '/user-dashboard', icon: <LayoutDashboard size={16} /> },
+  { label: 'Find Donors', href: '/find-blood', icon: <Search size={16} /> },
   { label: 'Eligibility', href: '/eligibility', icon: <Stethoscope size={16} /> },
   { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
 ];
@@ -48,6 +52,13 @@ function navForRole(role?: string): NavItem[] {
   if (role === 'hospital') return hospitalNav;
   if (role === 'admin') return adminNav;
   return donorNav;
+}
+
+// Open the floating AI chat widget. ChatWidget listens for this custom event.
+function openAiChat() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('raktsetu:open-chat'));
+  }
 }
 
 export default function Navbar() {
@@ -106,6 +117,15 @@ export default function Navbar() {
             </nav>
 
             <div className="hidden md:flex items-center gap-2">
+              {/* Ask AI — opens the floating RaktSetu assistant */}
+              <button
+                onClick={openAiChat}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-primary bg-primary/10 hover:bg-primary/15 transition-all"
+                aria-label="Ask the RaktSetu AI assistant"
+              >
+                <Sparkles size={15} /> Ask AI
+              </button>
+
               <button onClick={toggleTheme} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all" aria-label="Toggle theme">
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
@@ -179,6 +199,9 @@ export default function Navbar() {
                             <Link href="/eligibility" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors">
                               <Stethoscope size={16} /> Check Eligibility
                             </Link>
+                            <button onClick={() => { openAiChat(); setProfileOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors">
+                              <Sparkles size={16} /> Ask AI Assistant
+                            </button>
                           </div>
                           <div className="py-1 border-t border-border">
                             <button onClick={() => { logout(); setProfileOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-primary hover:bg-primary/5 transition-colors">
@@ -203,6 +226,9 @@ export default function Navbar() {
             </div>
 
             <div className="flex items-center gap-1 md:hidden">
+              <button onClick={openAiChat} className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-all" aria-label="Ask the RaktSetu AI assistant">
+                <Sparkles size={18} />
+              </button>
               <button onClick={toggleTheme} className="p-2 rounded-lg text-muted-foreground hover:bg-muted" aria-label="Toggle theme">
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
@@ -242,6 +268,13 @@ export default function Navbar() {
                 {item.icon}{item.label}
               </Link>
             ))}
+            {/* Ask AI inside the mobile drawer */}
+            <button
+              onClick={() => { openAiChat(); setMobileOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-all"
+            >
+              <Sparkles size={16} /> Ask AI Assistant
+            </button>
           </nav>
 
           <div className="absolute bottom-0 left-0 right-0 px-5 py-4 border-t border-border">
