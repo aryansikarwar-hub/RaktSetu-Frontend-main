@@ -1,7 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import SiteShell from '@/components/SiteShell';
-import RoleGuard from '@/components/RoleGuard';
 import FindBlood from './components/FindBlood';
 
 export const metadata: Metadata = {
@@ -9,14 +8,12 @@ export const metadata: Metadata = {
   description: 'Search verified donors by blood type and city, check compatibility instantly, and let AI rank the best matches near you.',
 };
 
-// Find Blood = searching the donor network. This is a HOSPITAL / ADMIN tool.
-// Donors do not search for donors, so they are blocked here.
+// Public: anyone can check compatibility and search donors — the most
+// important action during an emergency, so it is no longer gated by role.
 export default function FindBloodPage() {
   return (
     <SiteShell>
-      <RoleGuard allow={['hospital', 'admin']} featureName="Find Blood">
-        <FindBlood />
-      </RoleGuard>
+      <FindBlood />
     </SiteShell>
   );
 }

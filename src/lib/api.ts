@@ -93,6 +93,16 @@ export const authApi = {
   },
 
   logout() { clearToken(); },
+  async sendOtp(to: string) {
+    if (USE_MOCK) { await delay(300); return { success: true }; }
+    return request('/auth/send-otp', { method: 'POST', body: JSON.stringify({ to }) });
+  },
+  async verifyOtp(to: string, code: string) {
+    if (USE_MOCK) { await delay(300); const token = 'mock.token'; setToken(token); return { success: true, token }; }
+    const data = await request('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ to, code }) });
+    if (data && data.token) setToken(data.token);
+    return data;
+  },
 };
 
 /* ─────────────────────────────── DONORS ─────────────────────────────── */
@@ -128,6 +138,50 @@ export const donorApi = {
   },
 };
 
+/* ─────────────────────────────── DONATIONS (history) ─────────────────────────────── */
+export const donationApi = {
+  // Donation history for the logged-in donor.
+  // In mock mode it builds a believable history from the donor's own profile,
+  // so the "My Donations" page works with NO backend. With USE_MOCK=false it
+  // calls GET /api/donors/me/donations (add that route when you're ready).
+  async myHistory(user?: { bloodType?: string; city?: string; totalDonations?: number; lastDonation?: string | null }) {
+    if (USE_MOCK) {
+      await delay(350);
+
+      const bloodType = user?.bloodType || 'O+';
+      const city = user?.city || 'Mumbai';
+      const total = user?.totalDonations ?? 3;
+      const last = user?.lastDonation ? new Date(user.lastDonation) : new Date();
+
+      const HOSPITALS = [
+        'AIIMS', 'Apollo Hospital', 'Fortis Hospital', 'Kokilaben Hospital',
+        'Lilavati Hospital', 'Max Super Speciality', 'Manipal Hospital',
+      ];
+      const TYPES = ['Whole Blood', 'Platelets', 'Plasma'];
+
+      // Generate `total` past donations, ~92 days apart, newest first.
+      const donations = Array.from({ length: Math.max(0, total) }).map((_, i) => {
+        const d = new Date(last);
+        d.setDate(d.getDate() - i * 92);
+        return {
+          id: `mock_don_${i}`,
+          date: d.toISOString(),
+          hospital: `${HOSPITALS[i % HOSPITALS.length]}, ${city}`,
+          city,
+          bloodType,
+          units: 1,
+          donationType: TYPES[i % TYPES.length],
+          pointsAwarded: 50,
+        };
+      });
+
+      return { count: donations.length, donations };
+    }
+
+    return request('/donors/me/donations');
+  },
+};
+
 /* ─────────────────────────────── HOSPITALS ─────────────────────────────── */
 export const hospitalApi = {
   async list(city?: string) {
@@ -150,6 +204,23 @@ export const hospitalApi = {
       return { inventory };
     }
     return request(`/hospitals/inventory/aggregate${city ? `?city=${city}` : ''}`);
+  },
+
+  async createBooking(hospitalId: string, payload: { slotAt: string; units?: number; notes?: string }) {
+    if (USE_MOCK) {
+      await delay(200);
+      return { booking: { _id: `mock_${Date.now()}`, hospital: hospitalId, ...payload, status: 'booked' } };
+    }
+    return request(`/hospitals/${encodeURIComponent(hospitalId)}/book`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+
+  async bookingsForHospital(hospitalId: string) {
+    if (USE_MOCK) { await delay(200); return { count: 0, bookings: [] }; }
+    return request(`/hospitals/${encodeURIComponent(hospitalId)}/bookings`);
+  },
+  async updateInventory(hospitalId: string, inventory: { bloodType: string; units: number }[]) {
+    if (USE_MOCK) { await delay(200); return { hospital: { _id: hospitalId, inventory } }; }
+    return request(`/hospitals/${encodeURIComponent(hospitalId)}/inventory`, { method: 'PUT', body: JSON.stringify({ inventory }) });
   },
 };
 
@@ -187,6 +258,32 @@ export const emergencyApi = {
     }
     return request(`/emergencies/${id}/matches`);
   },
+
+  // Fetch a single emergency by id (used by the agreement page).
+  async get(id: string) {
+    if (USE_MOCK) {
+      await delay(200);
+      const e = MOCK_EMERGENCIES.find((x) => x._id === id);
+      if (!e) throw new Error('Emergency not found');
+      return { emergency: e };
+    }
+    // Backend has no single-get route; fetch the open list and find it.
+    const res = await request(`/emergencies`);
+    const found = (res.emergencies || []).find((x: any) => x._id === id);
+    if (!found) throw new Error('Emergency not found');
+    return { emergency: found };
+  },
+
+  // A donor pledges/commits to respond to an emergency.
+  async respond(id: string) {
+    if (USE_MOCK) {
+      await delay(700);
+      const e = MOCK_EMERGENCIES.find((x) => x._id === id) as any;
+      if (e) { e.respondersCount = (e.respondersCount || 0) + 1; e.status = 'matched'; }
+      return { success: true, emergency: e };
+    }
+    return request(`/emergencies/${id}/respond`, { method: 'POST', body: JSON.stringify({}) });
+  },
 };
 
 /* ─────────────────────────────── AI ─────────────────────────────── */
@@ -215,6 +312,39 @@ export const aiApi = {
   status() {
     if (USE_MOCK) return Promise.resolve({ mode: 'rules (client)', features: ['match', 'eligibility', 'forecast', 'triage'] });
     return request('/ai/status');
+  },
+
+  async describeEmergency(details: Record<string, unknown>) {
+    if (USE_MOCK) {
+      await delay(600);
+      const d: any = details;
+      return { description: `${d.units || ''} unit(s) of ${d.bloodType || 'blood'} needed at ${d.hospital || 'hospital'}${d.reason ? ` — ${d.reason}` : ''}. Urgency: ${d.urgency || 'urgent'}.` };
+    }
+    return request('/ai/describe-emergency', { method: 'POST', body: JSON.stringify(details) });
+  },
+
+  async outreach(donor: Record<string, unknown>, req2: Record<string, unknown>) {
+    if (USE_MOCK) {
+      await delay(600);
+      const name = (donor as any).name?.split(' ')[0] || 'there';
+      return { message: `Hi ${name}, ${(req2 as any).bloodType || 'blood'} is urgently needed at ${(req2 as any).hospital || 'a nearby hospital'}. You're a match — please respond if you can help. Thank you! 🩸` };
+    }
+    return request('/ai/outreach', { method: 'POST', body: JSON.stringify({ donor, request: req2 }) });
+  },
+
+  async eligibilityChat(message: string, history: { role: string; text: string }[] = []) {
+    if (USE_MOCK) {
+      await delay(700);
+      const m = message.toLowerCase();
+      const hints: string[] = [];
+      if (/(fever|cold|flu|ill|sick)/.test(m)) hints.push('Recent illness usually means waiting until fully recovered (~2 weeks).');
+      if (/(tattoo|piercing)/.test(m)) hints.push('A recent tattoo/piercing typically defers donation up to 6 months.');
+      if (/(pregnan|delivery)/.test(m)) hints.push('Pregnancy/recent delivery defers donation until a doctor clears you.');
+      if (/(alcohol|drink)/.test(m)) hints.push('Avoid donating within 24 hours of alcohol.');
+      const base = hints.length ? hints.join(' ') : 'Tell me your age, weight, last donation date, and any recent illness, tattoo, surgery, pregnancy, or medication.';
+      return { answer: `${base} (Informational only — not medical advice.)` };
+    }
+    return request('/ai/eligibility-chat', { method: 'POST', body: JSON.stringify({ message, history }) });
   },
 };
 
@@ -250,3 +380,70 @@ export const chatApi = {
     return request('/ai/chat', { method: 'POST', body: JSON.stringify({ message, history }) });
   },
 };
+
+/* ─────────────────────────────── NOTIFICATIONS ─────────────────────────────── */
+export const notificationsApi = {
+  async list() {
+    if (USE_MOCK) {
+      await delay(200);
+      return { count: 0, notifications: [] };
+    }
+    return request('/notifications');
+  },
+
+  async markRead(id: string) {
+    if (USE_MOCK) {
+      await delay(100);
+      return { success: true };
+    }
+    return request(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' });
+  },
+};
+
+export const commTemplatesApi = {
+  async list(params: { channel?: string; name?: string; page?: number; limit?: number } = {}) {
+    if (USE_MOCK) { await delay(200); return { count: 0, templates: [] }; }
+    const qs = new URLSearchParams(params as any).toString();
+    return request(`/comm/templates${qs ? `?${qs}` : ''}`);
+  },
+  async create(payload: { name: string; channel: string; subject?: string; body: string; default?: boolean }) {
+    if (USE_MOCK) { await delay(200); return { template: payload }; }
+    return request('/comm/templates', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async update(id: string, payload: { name?: string; channel?: string; subject?: string; body?: string; default?: boolean }) {
+    if (USE_MOCK) { await delay(200); return { template: { _id: id, ...payload } }; }
+    return request(`/comm/templates/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(payload) });
+  },
+  async delete(id: string) {
+    if (USE_MOCK) { await delay(200); return { success: true }; }
+    return request(`/comm/templates/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+  async listAudits(params: { target?: string; targetId?: string; page?: number; limit?: number } = {}) {
+    if (USE_MOCK) { await delay(200); return { audits: [], total: 0 }; }
+    const qs = new URLSearchParams(params as any).toString();
+    return request(`/comm/templates/audits${qs ? `?${qs}` : ''}`);
+  },
+  async listJobs(params: { status?: string; page?: number; limit?: number } = {}) {
+    if (USE_MOCK) { await delay(200); return { jobs: [], total: 0 }; }
+    const qs = new URLSearchParams(params as any).toString();
+    return request(`/comm/templates/jobs${qs ? `?${qs}` : ''}`);
+  },
+  async retryJob(id: string) {
+    if (USE_MOCK) { await delay(200); return { success: true }; }
+    return request(`/comm/templates/jobs/${encodeURIComponent(id)}/retry`, { method: 'POST' });
+  },
+};
+
+/* ─────────────────────────────── BOOKINGS ─────────────────────────────── */
+export const bookingApi = {
+  async myBookings() {
+    if (USE_MOCK) { await delay(200); return { count: 0, bookings: [] }; }
+    return request('/donors/me/bookings');
+  },
+
+  async cancelBooking(id: string) {
+    if (USE_MOCK) { await delay(150); return { success: true }; }
+    return request(`/bookings/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
+  },
+};
+

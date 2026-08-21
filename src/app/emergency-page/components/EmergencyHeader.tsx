@@ -13,7 +13,6 @@ interface EmergencyHeaderProps {
 export default function EmergencyHeader({ onOpenForm, canPost = false }: EmergencyHeaderProps) {
   return (
     <div className="relative overflow-hidden rounded-3xl bg-[#16171b] text-white p-6 md:p-8">
-      {/* Pulsing rings decoration */}
       <div className="absolute right-8 top-1/2 -translate-y-1/2 hidden md:block pointer-events-none">
         <div className="relative w-24 h-24">
           <div className="absolute inset-0 rounded-full border-2 border-primary/40 animate-ping" />
@@ -23,11 +22,10 @@ export default function EmergencyHeader({ onOpenForm, canPost = false }: Emergen
           </div>
         </div>
       </div>
-
       <div className="relative z-10 max-w-2xl">
         <div className="flex items-center gap-2 mb-3">
           <span className="w-2 h-2 rounded-full bg-primary live-dot" />
-          <span className="text-xs font-bold uppercase tracking-widest text-primary">Emergency Network — Live</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-primary">Emergency Network - Live</span>
         </div>
         <h1 className="text-2xl md:text-3xl font-extrabold mb-2 leading-tight">
           Blood Emergency Response Network
@@ -38,6 +36,7 @@ export default function EmergencyHeader({ onOpenForm, canPost = false }: Emergen
             : 'See active blood emergencies near you and respond to save a life. Average response time: 18 minutes. New requests are posted by verified hospitals in real time.'}
         </p>
         <div className="flex flex-wrap gap-3">
+          {/* Post button: hospitals & admins only. */}
           {canPost && (
             <button
               onClick={onOpenForm}
@@ -47,12 +46,13 @@ export default function EmergencyHeader({ onOpenForm, canPost = false }: Emergen
               Post Emergency Request
             </button>
           )}
+          {/* Helpline stays visible for everyone, and is tap-to-call on mobile. */}
           <a
             href="tel:1800543266"
             className="inline-flex items-center gap-2 bg-white/10 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-white/20 active:scale-95 transition-all duration-150 border border-white/20"
           >
             <Phone size={16} />
-            1800-RAKTSETU
+            Helpline: 1800-RAKTSETU
           </a>
         </div>
       </div>

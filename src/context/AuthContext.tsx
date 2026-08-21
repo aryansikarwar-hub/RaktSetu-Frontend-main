@@ -1,7 +1,7 @@
 'use client';
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { authApi } from '@/lib/api';
-
+ 
 export interface AuthUser {
   _id: string;
   name: string;
@@ -22,14 +22,15 @@ export interface AuthUser {
   licenseNumber?: string;
   designation?: string;
 }
-
+ 
 interface RegisterPayload {
+  [key: string]: unknown;
   name: string; email: string; password: string;
   role?: 'donor' | 'hospital' | 'admin';
-  bloodType?: string; city: string; phone?: string;
+  bloodType?: string; city: string; phone: string;
   hospitalName?: string; licenseNumber?: string; designation?: string;
 }
-
+ 
 interface AuthContextValue {
   user: AuthUser | null;
   isAdmin: boolean;
@@ -40,14 +41,14 @@ interface AuthContextValue {
   isLoading: boolean;
   error: string | null;
 }
-
+ 
 const AuthContext = createContext<AuthContextValue | null>(null);
-
+ 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+ 
   // Restore session on mount
   useEffect(() => {
     let mounted = true;
@@ -61,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     })();
     return () => { mounted = false; };
   }, []);
-
+ 
   const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true); setError(null);
     try {
@@ -75,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   }, []);
-
+ 
   const register = useCallback(async (payload: RegisterPayload) => {
     setIsLoading(true); setError(null);
     try {
@@ -89,12 +90,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     }
   }, []);
-
+ 
   const logout = useCallback(() => {
     authApi.logout();
     setUser(null);
   }, []);
-
+ 
   return (
     <AuthContext.Provider
       value={{
@@ -106,9 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     </AuthContext.Provider>
   );
 }
-
+ 
 export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
+ 

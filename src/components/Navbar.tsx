@@ -1,31 +1,38 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import {
   Menu, X, Home, AlertTriangle, LayoutDashboard, LogOut, LogIn, UserPlus,
-  ChevronDown, Bell, Sun, Moon, Activity, Stethoscope, Search,
+  ChevronDown, Bell, Sun, Moon, Activity, Stethoscope, Search, Award, Sparkles, ClipboardList,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import AuthModal from '@/components/AuthModal';
+import { useNotifications } from '@/context/NotificationsContext';
 
 interface NavItem { label: string; href: string; icon: React.ReactNode; }
 
+// Public navigation (visitors who are NOT logged in).
+// "Find Donors" is now public so anyone can check compatibility & search donors —
+// the most important action in an emergency.
 const publicNav: NavItem[] = [
   { label: 'Home', href: '/', icon: <Home size={16} /> },
+  { label: 'Find Donors', href: '/find-blood', icon: <Search size={16} /> },
   { label: 'Eligibility', href: '/eligibility', icon: <Stethoscope size={16} /> },
   { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
 ];
 
 // Navigation shown to a logged-in DONOR.
-// Donors can view emergencies (to respond) and check their own eligibility —
-// but they do NOT get "Find Blood" (hospital-only) or "Forecast" (hospital/admin).
+// A donor's job is to DONATE, not to search for other donors — so no "Find Donors".
+// Instead they get "My Donations": their history + a countdown to the next date
+// they're eligible to donate (the two questions every returning donor has).
 const donorNav: NavItem[] = [
   { label: 'Dashboard', href: '/user-dashboard', icon: <LayoutDashboard size={16} /> },
-  { label: 'Eligibility', href: '/eligibility', icon: <Stethoscope size={16} /> },
+  { label: 'My Donations', href: '/my-donations', icon: <ClipboardList size={16} /> },
   { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
+  { label: 'Eligibility', href: '/eligibility', icon: <Stethoscope size={16} /> },
 ];
 
 // Navigation shown to a logged-in HOSPITAL.
@@ -42,22 +49,33 @@ const adminNav: NavItem[] = [
   { label: 'Find Blood', href: '/find-blood', icon: <Search size={16} /> },
   { label: 'Forecast', href: '/forecast', icon: <Activity size={16} /> },
   { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
+  { label: 'Templates', href: '/admin/templates', icon: <ClipboardList size={16} /> },
 ];
 
 function navForRole(role?: string): NavItem[] {
   if (role === 'hospital') return hospitalNav;
-  if (role === 'admin') return adminNav;
+  if (role === 'admin' || role === 'coordinator') return adminNav;
   return donorNav;
+}
+
+// Open the floating AI chat widget. ChatWidget listens for this custom event.
+function openAiChat() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('raktsetu:open-chat'));
+  }
 }
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuth();
+  const { notifications, unreadCount, markRead } = useNotifications();
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
@@ -105,6 +123,15 @@ export default function Navbar() {
             </nav>
 
             <div className="hidden md:flex items-center gap-2">
+              {/* Ask AI — opens the floating RaktSetu assistant */}
+              <button
+                onClick={openAiChat}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-primary bg-primary/10 hover:bg-primary/15 transition-all"
+                aria-label="Ask the RaktSetu AI assistant"
+              >
+                <Sparkles size={15} /> Ask AI
+              </button>
+
               <button onClick={toggleTheme} className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all" aria-label="Toggle theme">
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
@@ -114,41 +141,79 @@ export default function Navbar() {
                   <div className="relative">
                     <button onClick={() => setNotifOpen(!notifOpen)} className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all" aria-label="Notifications">
                       <Bell size={20} />
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
+                      {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />}
                     </button>
                     {notifOpen && (
                       <div className="absolute right-0 top-full mt-2 w-80 bg-card rounded-2xl border border-border shadow-card-lg z-50 overflow-hidden">
                         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                           <span className="font-semibold text-sm">Notifications</span>
-                          <span className="text-xs text-muted-foreground">3 unread</span>
+                          <span className="text-xs text-muted-foreground">{unreadCount} unread</span>
                         </div>
-                        {[
-                          { id: 'n1', text: 'Emergency: O- blood needed at AIIMS Delhi', time: '2 min ago', urgent: true },
-                          { id: 'n2', text: 'Your donation eligibility restores in 3 days', time: '1 hr ago', urgent: false },
-                          { id: 'n3', text: 'Kokilaben Hospital updated blood stock', time: '3 hr ago', urgent: false },
-                        ].map((n) => (
-                          <div key={n.id} className="px-4 py-3 border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer">
+                        {(notifications || []).map((n: any) => (
+                          <Link
+                            key={n._id}
+                            href={n.link || '/'}
+                            onClick={() => { setNotifOpen(false); markRead(n._id).catch(() => {}); }}
+                            className="block px-4 py-3 border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
+                          >
                             <div className="flex items-start gap-2">
                               <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.urgent ? 'bg-primary' : 'bg-border'}`} />
                               <div>
-                                <p className="text-sm text-foreground leading-snug">{n.text}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">{n.time}</p>
+                                <p className="text-sm text-foreground leading-snug">{n.title}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
                               </div>
                             </div>
-                          </div>
+                          </Link>
                         ))}
+                        <Link href="/emergency-page" onClick={() => setNotifOpen(false)} className="block px-4 py-2.5 text-center text-xs font-semibold text-primary hover:bg-primary/5 transition-colors">
+                          View all emergencies →
+                        </Link>
                       </div>
                     )}
                   </div>
 
-                  <Link href="/user-dashboard" className="flex items-center gap-2 pl-2 border-l border-border">
-                    <div className="w-8 h-8 rounded-full gradient-card-red flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{user.name.charAt(0)}</div>
-                    <div className="hidden lg:block">
-                      <p className="text-sm font-semibold text-foreground leading-tight">{user.name}</p>
-                      <p className="text-xs text-muted-foreground">{user.bloodType} · {user.city}</p>
-                    </div>
-                    <ChevronDown size={14} className="text-muted-foreground" />
-                  </Link>
+                  <div className="relative pl-2 border-l border-border">
+                    <button onClick={() => setProfileOpen(!profileOpen)} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+                      <div className="w-8 h-8 rounded-full gradient-card-red flex items-center justify-center text-white font-bold text-sm flex-shrink-0">{user.name.charAt(0)}</div>
+                      <div className="hidden lg:block text-left">
+                        <p className="text-sm font-semibold text-foreground leading-tight">{user.name}</p>
+                        <p className="text-xs text-muted-foreground">{user.bloodType} · {user.city}</p>
+                      </div>
+                      <ChevronDown size={14} className={`text-muted-foreground transition-transform ${profileOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {profileOpen && (
+                      <>
+                        <div className="fixed inset-0 z-40" onClick={() => setProfileOpen(false)} />
+                        <div className="absolute right-0 top-full mt-2 w-56 bg-card rounded-2xl border border-border shadow-card-lg z-50 overflow-hidden">
+                          <div className="px-4 py-3 border-b border-border">
+                            <p className="text-sm font-semibold text-foreground">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">{user.email || `${user.bloodType} · ${user.city}`}</p>
+                          </div>
+                          <div className="py-1">
+                            <Link href="/user-dashboard" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors">
+                              <LayoutDashboard size={16} /> My Dashboard
+                            </Link>
+                            {user.role === 'donor' && (
+                              <Link href="/badges" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors">
+                                <Award size={16} /> Badges & Certificate
+                              </Link>
+                            )}
+                            <Link href="/eligibility" onClick={() => setProfileOpen(false)} className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors">
+                              <Stethoscope size={16} /> Check Eligibility
+                            </Link>
+                            <button onClick={() => { openAiChat(); setProfileOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground hover:bg-muted transition-colors">
+                              <Sparkles size={16} /> Ask AI Assistant
+                            </button>
+                          </div>
+                          <div className="py-1 border-t border-border">
+                            <button onClick={() => { logout(); setProfileOpen(false); }} className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-primary hover:bg-primary/5 transition-colors">
+                              <LogOut size={16} /> Logout
+                            </button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                   <button onClick={logout} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 transition-all">
                     <LogOut size={15} />
                     <span className="hidden lg:inline">Logout</span>
@@ -156,13 +221,16 @@ export default function Navbar() {
                 </>
               ) : (
                 <>
-                  <button onClick={() => openAuth('login')} className="btn-ghost text-sm"><LogIn size={15} /> Login</button>
+                  <button onClick={() => router.push('/auth/otp')} className="btn-ghost text-sm"><LogIn size={15} /> Login</button>
                   <button onClick={() => openAuth('register')} className="btn-primary text-sm py-2 px-4"><UserPlus size={15} /> Register</button>
                 </>
               )}
             </div>
 
             <div className="flex items-center gap-1 md:hidden">
+              <button onClick={openAiChat} className="p-2 rounded-lg text-primary hover:bg-primary/10 transition-all" aria-label="Ask the RaktSetu AI assistant">
+                <Sparkles size={18} />
+              </button>
               <button onClick={toggleTheme} className="p-2 rounded-lg text-muted-foreground hover:bg-muted" aria-label="Toggle theme">
                 {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
               </button>
@@ -202,6 +270,13 @@ export default function Navbar() {
                 {item.icon}{item.label}
               </Link>
             ))}
+            {/* Ask AI inside the mobile drawer */}
+            <button
+              onClick={() => { openAiChat(); setMobileOpen(false); }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-primary bg-primary/5 hover:bg-primary/10 transition-all"
+            >
+              <Sparkles size={16} /> Ask AI Assistant
+            </button>
           </nav>
 
           <div className="absolute bottom-0 left-0 right-0 px-5 py-4 border-t border-border">
@@ -212,7 +287,7 @@ export default function Navbar() {
             ) : (
               <div className="space-y-2">
                 <button onClick={() => { openAuth('register'); setMobileOpen(false); }} className="btn-primary w-full">Get Started</button>
-                <button onClick={() => { openAuth('login'); setMobileOpen(false); }} className="btn-secondary w-full">Login</button>
+                <button onClick={() => { router.push('/auth/otp'); setMobileOpen(false); }} className="btn-secondary w-full">Login</button>
               </div>
             )}
           </div>

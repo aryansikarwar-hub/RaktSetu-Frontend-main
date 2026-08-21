@@ -1,7 +1,8 @@
 import React from 'react';
-import { CheckCircle2, Clock, Award, MapPin } from 'lucide-react';
+import { CheckCircle2, Clock, Award, MapPin, Phone } from 'lucide-react';
 import BloodTypeBadge from '@/components/ui/BloodTypeBadge';
 import { AuthUser } from '@/context/AuthContext';
+import { formatPhone, telHref } from '@/lib/phone';
 
 interface WelcomeCardProps {
   user: AuthUser;
@@ -38,6 +39,12 @@ export default function WelcomeCard({ user }: WelcomeCardProps) {
                 <MapPin size={12} />
                 {user.city}
               </div>
+              {user.phone && (
+                <a href={telHref(user.phone)} className="flex items-center gap-1 text-white/80 text-xs hover:text-white transition-colors">
+                  <Phone size={12} />
+                  {formatPhone(user.phone)}
+                </a>
+              )}
               <div className={`flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
                 user.donorStatus === 'active' ? 'bg-green-400/20 text-green-200' : 'bg-amber-400/20 text-amber-200'
               }`}>

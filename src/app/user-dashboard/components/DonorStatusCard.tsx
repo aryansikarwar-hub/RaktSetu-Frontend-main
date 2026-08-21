@@ -2,6 +2,7 @@ import React from 'react';
 import { Droplets, Calendar, Phone, MapPin, Edit3, Shield } from 'lucide-react';
 import BloodTypeBadge from '@/components/ui/BloodTypeBadge';
 import { AuthUser } from '@/context/AuthContext';
+import { formatPhone, telHref } from '@/lib/phone';
 
 interface DonorStatusCardProps {
   user: AuthUser;
@@ -60,8 +61,14 @@ export default function DonorStatusCard({ user }: DonorStatusCardProps) {
             <Phone size={13} className="text-muted-foreground" />
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Contact</p>
-            <p className="text-sm font-semibold text-foreground">{user.phone}</p>
+            <p className="text-xs text-muted-foreground">Mobile Number</p>
+            {user.phone ? (
+              <a href={telHref(user.phone)} className="text-sm font-semibold text-foreground hover:text-primary transition-colors">
+                {formatPhone(user.phone)}
+              </a>
+            ) : (
+              <p className="text-sm font-semibold text-muted-foreground">Not added yet</p>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-3">

@@ -7,6 +7,7 @@ import {
 import BloodTypeBadge from '@/components/ui/BloodTypeBadge';
 import CitySelect from '@/components/ui/CitySelect';
 import { donorApi, aiApi } from '@/lib/api';
+import { formatPhone, telHref } from '@/lib/phone';
 
 const BLOOD_TYPES = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
 const TABS = [
@@ -121,6 +122,8 @@ function DonorSearch() {
 }
 
 function DonorCard({ donor }: { donor: any }) {
+  // Number stays hidden until the user asks for it, then turns into a tap-to-call link.
+  const [showPhone, setShowPhone] = useState(false);
   const tierColor: Record<string, string> = {
     Platinum: 'text-slate-300', Gold: 'text-amber-500', Silver: 'text-slate-400', Bronze: 'text-orange-700',
   };
@@ -150,11 +153,22 @@ function DonorCard({ donor }: { donor: any }) {
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
+      <div className="flex items-center justify-between mt-4 pt-4 border-t border-border gap-2">
         <span className="text-xs text-muted-foreground">{donor.totalDonations || 0} donations</span>
-        <button className="text-sm font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all">
-          <Phone size={14} /> Contact
-        </button>
+        {!donor.phone ? (
+          <span className="text-xs text-muted-foreground">No number on file</span>
+        ) : showPhone ? (
+          <a href={telHref(donor.phone)} className="text-sm font-semibold text-primary flex items-center gap-1 hover:underline">
+            <Phone size={14} /> {formatPhone(donor.phone)}
+          </a>
+        ) : (
+          <button
+            onClick={() => setShowPhone(true)}
+            className="text-sm font-semibold text-primary flex items-center gap-1 hover:gap-1.5 transition-all"
+          >
+            <Phone size={14} /> Contact
+          </button>
+        )}
       </div>
     </div>
   );

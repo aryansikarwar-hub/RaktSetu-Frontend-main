@@ -29,6 +29,14 @@ export default function ChatWidget() {
     if (open) setTimeout(() => inputRef.current?.focus(), 150);
   }, [open]);
 
+  // Allow the "Ask AI" button in the Navbar (and anywhere else) to open this
+  // widget by dispatching: window.dispatchEvent(new CustomEvent('raktsetu:open-chat'))
+  useEffect(() => {
+    const openChat = () => setOpen(true);
+    window.addEventListener('raktsetu:open-chat', openChat);
+    return () => window.removeEventListener('raktsetu:open-chat', openChat);
+  }, []);
+
   const ask = useCallback(async (question: string) => {
     const q = question.trim();
     if (!q || loading) return;
