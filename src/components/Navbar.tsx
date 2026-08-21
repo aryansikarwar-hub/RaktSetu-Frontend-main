@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import AppLogo from '@/components/ui/AppLogo';
 import {
   Menu, X, Home, AlertTriangle, LayoutDashboard, LogOut, LogIn, UserPlus,
@@ -10,6 +10,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
 import AuthModal from '@/components/AuthModal';
+import { useNotifications } from '@/context/NotificationsContext';
 
 interface NavItem { label: string; href: string; icon: React.ReactNode; }
 
@@ -48,11 +49,12 @@ const adminNav: NavItem[] = [
   { label: 'Find Blood', href: '/find-blood', icon: <Search size={16} /> },
   { label: 'Forecast', href: '/forecast', icon: <Activity size={16} /> },
   { label: 'Emergencies', href: '/emergency-page', icon: <AlertTriangle size={16} /> },
+  { label: 'Templates', href: '/admin/templates', icon: <ClipboardList size={16} /> },
 ];
 
 function navForRole(role?: string): NavItem[] {
   if (role === 'hospital') return hospitalNav;
-  if (role === 'admin') return adminNav;
+  if (role === 'admin' || role === 'coordinator') return adminNav;
   return donorNav;
 }
 
@@ -71,7 +73,9 @@ export default function Navbar() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const pathname = usePathname();
+  const router = useRouter();
   const { user, logout } = useAuth();
+  const { notifications, unreadCount, markRead } = useNotifications();
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
@@ -137,30 +141,26 @@ export default function Navbar() {
                   <div className="relative">
                     <button onClick={() => setNotifOpen(!notifOpen)} className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all" aria-label="Notifications">
                       <Bell size={20} />
-                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
+                      {unreadCount > 0 && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />}
                     </button>
                     {notifOpen && (
                       <div className="absolute right-0 top-full mt-2 w-80 bg-card rounded-2xl border border-border shadow-card-lg z-50 overflow-hidden">
                         <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                           <span className="font-semibold text-sm">Notifications</span>
-                          <span className="text-xs text-muted-foreground">3 unread</span>
+                          <span className="text-xs text-muted-foreground">{unreadCount} unread</span>
                         </div>
-                        {[
-                          { id: 'n1', text: 'Emergency: O- blood needed at AIIMS Delhi', time: '2 min ago', urgent: true, href: '/emergency-page' },
-                          { id: 'n2', text: 'Your donation eligibility restores in 3 days', time: '1 hr ago', urgent: false, href: '/eligibility' },
-                          { id: 'n3', text: 'Kokilaben Hospital updated blood stock', time: '3 hr ago', urgent: false, href: '/user-dashboard' },
-                        ].map((n) => (
+                        {(notifications || []).map((n: any) => (
                           <Link
-                            key={n.id}
-                            href={n.href}
-                            onClick={() => setNotifOpen(false)}
+                            key={n._id}
+                            href={n.link || '/'}
+                            onClick={() => { setNotifOpen(false); markRead(n._id).catch(() => {}); }}
                             className="block px-4 py-3 border-b border-border last:border-0 hover:bg-muted/50 transition-colors cursor-pointer"
                           >
                             <div className="flex items-start gap-2">
                               <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.urgent ? 'bg-primary' : 'bg-border'}`} />
                               <div>
-                                <p className="text-sm text-foreground leading-snug">{n.text}</p>
-                                <p className="text-xs text-muted-foreground mt-0.5">{n.time}</p>
+                                <p className="text-sm text-foreground leading-snug">{n.title}</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">{new Date(n.createdAt).toLocaleString()}</p>
                               </div>
                             </div>
                           </Link>
@@ -221,7 +221,7 @@ export default function Navbar() {
                 </>
               ) : (
                 <>
-                  <button onClick={() => openAuth('login')} className="btn-ghost text-sm"><LogIn size={15} /> Login</button>
+                  <button onClick={() => router.push('/auth/otp')} className="btn-ghost text-sm"><LogIn size={15} /> Login</button>
                   <button onClick={() => openAuth('register')} className="btn-primary text-sm py-2 px-4"><UserPlus size={15} /> Register</button>
                 </>
               )}
@@ -287,7 +287,7 @@ export default function Navbar() {
             ) : (
               <div className="space-y-2">
                 <button onClick={() => { openAuth('register'); setMobileOpen(false); }} className="btn-primary w-full">Get Started</button>
-                <button onClick={() => { openAuth('login'); setMobileOpen(false); }} className="btn-secondary w-full">Login</button>
+                <button onClick={() => { router.push('/auth/otp'); setMobileOpen(false); }} className="btn-secondary w-full">Login</button>
               </div>
             )}
           </div>

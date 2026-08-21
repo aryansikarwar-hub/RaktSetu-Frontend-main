@@ -1,7 +1,8 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Building2, Phone, MapPin, CheckCircle2, Loader2, Bed } from 'lucide-react';
 import { hospitalApi } from '@/lib/api';
+import Pagination from '@/components/ui/Pagination';
 
 function deriveTypes(inventory: any[] = []) {
   const available = inventory.filter((i) => i.units >= 20).map((i) => i.bloodType);
@@ -9,9 +10,27 @@ function deriveTypes(inventory: any[] = []) {
   return { available, critical };
 }
 
+/** Cards per page: 4 on phones, 6 on tablets, 8 on desktop (2 full rows of the grid). */
+function usePageSize() {
+  const [size, setSize] = useState(8);
+  useEffect(() => {
+    const compute = () => {
+      const w = window.innerWidth;
+      setSize(w < 768 ? 4 : w < 1280 ? 6 : 8);
+    };
+    compute();
+    window.addEventListener('resize', compute);
+    return () => window.removeEventListener('resize', compute);
+  }, []);
+  return size;
+}
+
 export default function HospitalHighlights() {
   const [hospitals, setHospitals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const pageSize = usePageSize();
+  const gridTopRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     hospitalApi.list().then((res) => {
@@ -20,8 +39,25 @@ export default function HospitalHighlights() {
     }).catch(() => setLoading(false));
   }, []);
 
+  const totalPages = Math.max(1, Math.ceil(hospitals.length / pageSize));
+
+  // If the viewport shrinks, the current page can fall off the end — clamp it.
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const start = (page - 1) * pageSize;
+  const visible = hospitals.slice(start, start + pageSize);
+
+  const changePage = (p: number) => {
+    setPage(p);
+    // Scroll the section back into view so mobile users don't land mid-list.
+    gridTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   return (
     <section className="max-w-screen-2xl mx-auto px-4 lg:px-8 xl:px-10 py-16">
+      <div ref={gridTopRef} className="scroll-mt-24" />
       <div className="flex items-end justify-between mb-10">
         <div>
           <span className="eyebrow">Network</span>
@@ -34,8 +70,9 @@ export default function HospitalHighlights() {
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary" size={28} /></div>
       ) : (
+        <>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-          {hospitals.map((h) => {
+          {visible.map((h) => {
             const { available, critical } = deriveTypes(h.inventory);
             return (
               <div key={h._id} className="card-hover p-5">
@@ -95,6 +132,16 @@ export default function HospitalHighlights() {
             );
           })}
         </div>
+
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onChange={changePage}
+          pageSize={pageSize}
+          totalItems={hospitals.length}
+          itemLabel="hospitals"
+        />
+        </>
       )}
     </section>
   );

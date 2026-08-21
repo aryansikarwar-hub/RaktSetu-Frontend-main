@@ -93,6 +93,16 @@ export const authApi = {
   },
 
   logout() { clearToken(); },
+  async sendOtp(to: string) {
+    if (USE_MOCK) { await delay(300); return { success: true }; }
+    return request('/auth/send-otp', { method: 'POST', body: JSON.stringify({ to }) });
+  },
+  async verifyOtp(to: string, code: string) {
+    if (USE_MOCK) { await delay(300); const token = 'mock.token'; setToken(token); return { success: true, token }; }
+    const data = await request('/auth/verify-otp', { method: 'POST', body: JSON.stringify({ to, code }) });
+    if (data && data.token) setToken(data.token);
+    return data;
+  },
 };
 
 /* ─────────────────────────────── DONORS ─────────────────────────────── */
@@ -194,6 +204,23 @@ export const hospitalApi = {
       return { inventory };
     }
     return request(`/hospitals/inventory/aggregate${city ? `?city=${city}` : ''}`);
+  },
+
+  async createBooking(hospitalId: string, payload: { slotAt: string; units?: number; notes?: string }) {
+    if (USE_MOCK) {
+      await delay(200);
+      return { booking: { _id: `mock_${Date.now()}`, hospital: hospitalId, ...payload, status: 'booked' } };
+    }
+    return request(`/hospitals/${encodeURIComponent(hospitalId)}/book`, { method: 'POST', body: JSON.stringify(payload) });
+  },
+
+  async bookingsForHospital(hospitalId: string) {
+    if (USE_MOCK) { await delay(200); return { count: 0, bookings: [] }; }
+    return request(`/hospitals/${encodeURIComponent(hospitalId)}/bookings`);
+  },
+  async updateInventory(hospitalId: string, inventory: { bloodType: string; units: number }[]) {
+    if (USE_MOCK) { await delay(200); return { hospital: { _id: hospitalId, inventory } }; }
+    return request(`/hospitals/${encodeURIComponent(hospitalId)}/inventory`, { method: 'PUT', body: JSON.stringify({ inventory }) });
   },
 };
 
@@ -353,3 +380,70 @@ export const chatApi = {
     return request('/ai/chat', { method: 'POST', body: JSON.stringify({ message, history }) });
   },
 };
+
+/* ─────────────────────────────── NOTIFICATIONS ─────────────────────────────── */
+export const notificationsApi = {
+  async list() {
+    if (USE_MOCK) {
+      await delay(200);
+      return { count: 0, notifications: [] };
+    }
+    return request('/notifications');
+  },
+
+  async markRead(id: string) {
+    if (USE_MOCK) {
+      await delay(100);
+      return { success: true };
+    }
+    return request(`/notifications/${encodeURIComponent(id)}/read`, { method: 'POST' });
+  },
+};
+
+export const commTemplatesApi = {
+  async list(params: { channel?: string; name?: string; page?: number; limit?: number } = {}) {
+    if (USE_MOCK) { await delay(200); return { count: 0, templates: [] }; }
+    const qs = new URLSearchParams(params as any).toString();
+    return request(`/comm/templates${qs ? `?${qs}` : ''}`);
+  },
+  async create(payload: { name: string; channel: string; subject?: string; body: string; default?: boolean }) {
+    if (USE_MOCK) { await delay(200); return { template: payload }; }
+    return request('/comm/templates', { method: 'POST', body: JSON.stringify(payload) });
+  },
+  async update(id: string, payload: { name?: string; channel?: string; subject?: string; body?: string; default?: boolean }) {
+    if (USE_MOCK) { await delay(200); return { template: { _id: id, ...payload } }; }
+    return request(`/comm/templates/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(payload) });
+  },
+  async delete(id: string) {
+    if (USE_MOCK) { await delay(200); return { success: true }; }
+    return request(`/comm/templates/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  },
+  async listAudits(params: { target?: string; targetId?: string; page?: number; limit?: number } = {}) {
+    if (USE_MOCK) { await delay(200); return { audits: [], total: 0 }; }
+    const qs = new URLSearchParams(params as any).toString();
+    return request(`/comm/templates/audits${qs ? `?${qs}` : ''}`);
+  },
+  async listJobs(params: { status?: string; page?: number; limit?: number } = {}) {
+    if (USE_MOCK) { await delay(200); return { jobs: [], total: 0 }; }
+    const qs = new URLSearchParams(params as any).toString();
+    return request(`/comm/templates/jobs${qs ? `?${qs}` : ''}`);
+  },
+  async retryJob(id: string) {
+    if (USE_MOCK) { await delay(200); return { success: true }; }
+    return request(`/comm/templates/jobs/${encodeURIComponent(id)}/retry`, { method: 'POST' });
+  },
+};
+
+/* ─────────────────────────────── BOOKINGS ─────────────────────────────── */
+export const bookingApi = {
+  async myBookings() {
+    if (USE_MOCK) { await delay(200); return { count: 0, bookings: [] }; }
+    return request('/donors/me/bookings');
+  },
+
+  async cancelBooking(id: string) {
+    if (USE_MOCK) { await delay(150); return { success: true }; }
+    return request(`/bookings/${encodeURIComponent(id)}/cancel`, { method: 'POST' });
+  },
+};
+

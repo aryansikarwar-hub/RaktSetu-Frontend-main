@@ -30,6 +30,8 @@ export default function MyDonations() {
   const { user } = useAuth();
   const [records, setRecords] = useState<DonationRecord[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const [bookings, setBookings] = useState<any[] | null>(null);
+  const [bookingsLoading, setBookingsLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -42,6 +44,14 @@ export default function MyDonations() {
       } finally {
         if (active) setLoading(false);
       }
+    })();
+    (async () => {
+      try {
+        const res = await (await import('@/lib/api')).bookingApi.myBookings();
+        if (active) setBookings(res.bookings || []);
+      } catch {
+        if (active) setBookings([]);
+      } finally { if (active) setBookingsLoading(false); }
     })();
     return () => { active = false; };
   }, [user]);
@@ -183,6 +193,45 @@ export default function MyDonations() {
             <Link href="/emergency-page" className="btn-primary inline-flex text-sm">
               <Heart size={15} /> Find a place to donate
             </Link>
+          </div>
+        )}
+      </div>
+
+      {/* Bookings */}
+      <div className="card p-0 overflow-hidden">
+        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+          <h3 className="font-bold text-foreground flex items-center gap-2">
+            <CalendarClock size={18} className="text-primary" /> My Bookings
+          </h3>
+        </div>
+
+        {bookingsLoading ? (
+          <div className="p-6">Loading bookings...</div>
+        ) : bookings && bookings.length > 0 ? (
+          <ul className="divide-y divide-border">
+            {bookings.map((b: any) => (
+              <li key={b._id} className="px-5 py-4 flex items-center gap-4 hover:bg-muted/40 transition-colors">
+                <div className="w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-extrabold text-sm flex-shrink-0">
+                  {b.units}u
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-foreground text-sm">{b.hospital}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{new Date(b.slotAt).toLocaleString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-semibold text-foreground capitalize">{b.status}</p>
+                  <p className="text-xs text-muted-foreground">{new Date(b.createdAt).toLocaleDateString()}</p>
+                </div>
+                {b.status === 'booked' && (
+                  <button onClick={async () => { try { await (await import('@/lib/api')).bookingApi.cancelBooking(b._id); setBookings((s)=>s.filter((x:any)=>x._id!==b._id)); alert('Booking cancelled'); } catch(e){ alert('Cancel failed'); } }} className="text-xs text-red-600">Cancel</button>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="px-5 py-12 text-center">
+            <p className="font-semibold text-foreground">No upcoming bookings</p>
+            <p className="text-sm text-muted-foreground mt-1 mb-4">Book a slot from the Hospitals network to reserve a time to donate.</p>
           </div>
         )}
       </div>

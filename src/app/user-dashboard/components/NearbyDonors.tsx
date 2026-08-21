@@ -4,6 +4,7 @@ import { Search, Phone, MapPin, Clock, Loader2, CheckCircle2, Award } from 'luci
 import BloodTypeBadge from '@/components/ui/BloodTypeBadge';
 import CitySelect from '@/components/ui/CitySelect';
 import { donorApi } from '@/lib/api';
+import { formatPhone, telHref } from '@/lib/phone';
 
 const BLOOD_TYPES = ['All', 'A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 
@@ -92,11 +93,20 @@ export default function NearbyDonors() {
                   )}
                   <span className="text-[11px] text-muted-foreground">{d.totalDonations || 0} donations</span>
                 </div>
+                {revealedPhone === d._id && (
+                  d.phone ? (
+                    <a href={telHref(d.phone)} className="text-xs font-semibold text-primary flex items-center gap-1 mt-1.5 hover:underline">
+                      <Phone size={11} /> {formatPhone(d.phone)}
+                    </a>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground mt-1.5">No number on file</p>
+                  )
+                )}
               </div>
               <button
                 onClick={() => setRevealedPhone(revealedPhone === d._id ? null : d._id)}
                 className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all flex-shrink-0"
-                aria-label="Contact"
+                aria-label={revealedPhone === d._id ? 'Hide contact number' : 'Show contact number'}
               >
                 <Phone size={16} />
               </button>

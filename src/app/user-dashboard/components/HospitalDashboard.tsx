@@ -14,6 +14,9 @@ export default function HospitalDashboard({ user }: { user: AuthUser }) {
   const [requests, setRequests] = useState<any[]>([]);
   const [forecast, setForecast] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+  const [editableInventory, setEditableInventory] = useState<any[] | null>(null);
+  const [savingInv, setSavingInv] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -81,8 +84,9 @@ export default function HospitalDashboard({ user }: { user: AuthUser }) {
           ) : inventory.length === 0 ? (
             <p className="text-sm text-muted-foreground py-8 text-center">No inventory data for {user.city} yet.</p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {inventory.map((i) => {
+            <div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {inventory.map((i) => {
                 const tone = i.status === 'critical' ? 'border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/30'
                   : i.status === 'low' ? 'border-amber-300 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30'
                   : 'border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/30';
@@ -95,6 +99,61 @@ export default function HospitalDashboard({ user }: { user: AuthUser }) {
                   </div>
                 );
               })}
+            </div>
+
+              <div className="mt-4 flex items-center gap-2">
+                {!editing ? (
+                  <button onClick={async () => {
+                    // prepare editable inventory: find hospital id by name and load current inventory
+                    try {
+                      const list = await hospitalApi.list(user.city);
+                      const match = list.hospitals.find((h:any) => h.name === (user.hospitalName || '')) || list.hospitals[0];
+                      setEditableInventory(match ? (match.inventory || []) : inventory.map((i:any)=>({ bloodType: i.bloodType, units: i.units })));
+                      setEditing(true);
+                    } catch {
+                      setEditableInventory(inventory.map((i:any)=>({ bloodType: i.bloodType, units: i.units })));
+                      setEditing(true);
+                    }
+                  }} className="btn-primary px-3 py-2 text-sm">Edit Inventory</button>
+                ) : (
+                  <>
+                    <button onClick={() => { setEditing(false); setEditableInventory(null); }} className="px-3 py-2 rounded-lg">Cancel</button>
+                    <button onClick={async () => {
+                      if (!editableInventory) return;
+                      setSavingInv(true);
+                      try {
+                        const list = await hospitalApi.list(user.city);
+                        const match = list.hospitals.find((h:any) => h.name === (user.hospitalName || '')) || list.hospitals[0];
+                        const hid = match ? match._id : undefined;
+                        if (!hid) throw new Error('Hospital not found to update');
+                        await hospitalApi.updateInventory(hid, editableInventory.map((x:any)=>({ bloodType: x.bloodType, units: Number(x.units) })));
+                        // refresh
+                        const inv = await hospitalApi.aggregateInventory(user.city);
+                        setInventory(inv.inventory || []);
+                        setEditing(false);
+                        setEditableInventory(null);
+                      } catch (err) {
+                        // eslint-disable-next-line no-alert
+                        alert('Failed to save inventory');
+                      } finally { setSavingInv(false); }
+                    }} className="btn-primary px-3 py-2 text-sm">{savingInv ? 'Saving...' : 'Save Inventory'}</button>
+                  </>
+                )}
+              </div>
+
+              {editing && editableInventory && (
+                <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {editableInventory.map((it:any, idx:number) => (
+                    <div key={it.bloodType} className="rounded-2xl border p-3 text-center">
+                      <div className="font-mono font-bold mb-2">{it.bloodType}</div>
+                      <input type="number" value={it.units} onChange={(e)=>{
+                        const v = Number(e.target.value);
+                        setEditableInventory((s:any)=>{ const copy = [...s]; copy[idx] = { ...copy[idx], units: isNaN(v)?0:v }; return copy; });
+                      }} className="w-full px-2 py-1 rounded-md text-center" />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
