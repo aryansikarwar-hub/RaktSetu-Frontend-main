@@ -16,10 +16,12 @@ export default function EmergencyPageContent() {
 
   return (
     <div className="space-y-6">
+      {/* canPost is passed so the header can hide the "Post" button for donors. */}
       <EmergencyHeader canPost={canPost} onOpenForm={() => setFormOpen(true)} />
       <EmergencyStats />
 
       {canPost ? (
+        // Hospital / admin view: feed + posting form side by side.
         <div className="grid grid-cols-1 xl:grid-cols-5 gap-6">
           <div className="xl:col-span-3">
             <ActiveEmergenciesFeed />
@@ -29,6 +31,7 @@ export default function EmergencyPageContent() {
           </div>
         </div>
       ) : (
+        // Donor / public view: full-width feed only, no posting form.
         <ActiveEmergenciesFeed />
       )}
     </div>

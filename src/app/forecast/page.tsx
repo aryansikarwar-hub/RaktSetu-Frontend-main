@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   description: 'AI-driven 7-day blood supply forecast by city — see which types are heading critical and act before shortages hit.',
 };
 
+// Forecasting is a supply-planning tool for hospitals & admins.
 export default function ForecastPage() {
   return (
     <SiteShell>

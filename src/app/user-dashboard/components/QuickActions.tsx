@@ -13,6 +13,7 @@ type Action = {
   color: string;
   iconBg: string;
   badge: string | null;
+  // Which roles may see this action.
   roles: Array<'donor' | 'hospital' | 'admin'>;
 };
 
@@ -51,6 +52,7 @@ const ALL_ACTIONS: Action[] = [
     roles: ['donor'],
   },
   {
+    // Hospitals only: search the donor network.
     id: 'qa-find',
     icon: <Search size={24} />,
     title: 'Find Blood',
@@ -62,6 +64,7 @@ const ALL_ACTIONS: Action[] = [
     roles: ['hospital'],
   },
   {
+    // Hospitals only: post a new emergency request.
     id: 'qa-emergency',
     icon: <AlertTriangle size={24} />,
     title: 'Post Emergency',
